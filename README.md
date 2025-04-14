@@ -12,7 +12,7 @@ This toolkit includes functions to explore and understand the role of mutations 
 - **Description**: Analyzes gene expresion data to identify differentially expressed genes in cancerous tissues compared to normal tissues.
 
 ### 3. **Mutation-Driven Differential Gene Expression**
-- **Description**: Exmamines whether mutations in specific genes are associated with changes in their expression levels in cancerous versus nromal tissues. 
+- **Description**: Examines whether mutations in specific genes are associated with changes in their expression levels in cancerous versus nromal tissues. 
 
 ### 4.**Command-Line Interface (CLI)**
 - **Description**: A command-line interface that allows users to run the different analyses and view results direclty from the terminal.
