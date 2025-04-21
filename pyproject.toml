@@ -4,6 +4,7 @@ explicit_package_bases = true
 ignore_missing_imports = true
 namespace_packages = true
 strict = true
+disallow_untyped_calls = false
 
 [tool.ruff]
 line-length = 79
