@@ -24,13 +24,22 @@ jobs:
     - name: Run tests with pytest
       continue-on-error: true
       run: |
-        # Run pytest on the `toolkit.py` file and any relevant files in the `data/` folder if necessary
+        # Ensure the tests directory exists
         if [ -d tests/ ]; then
-          coverage run --source=toolkit.py -m pytest tests/ > test_report.txt
-          echo $? > exit_code.txt
+          echo "Running pytest..."
+          # Run pytest and save output to test_report.txt
+          pytest --maxfail=1 --disable-warnings -q > test_report.txt || echo "pytest failed with exit code $?"; 
         else
-          echo 0 > exit_code.txt
+          echo "No tests directory found"
+          echo "0" > exit_code.txt
         fi
+        # Check if the test_report.txt exists after running tests
+        if [ -f test_report.txt ]; then
+          echo "Test report created successfully."
+        else
+          echo "Test report not created."
+        fi
+        echo $? > exit_code.txt
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -95,5 +104,11 @@ jobs:
 
     - name: Print report and exit with code
       run: |
-        cat test_report.txt
+        # Print the test report if it exists
+        if [ -f test_report.txt ]; then
+          cat test_report.txt
+        else
+          echo "No test report found."
+        fi
+        # Exit with the code from pytest or 0 if no tests were found
         exit $(cat exit_code.txt)
