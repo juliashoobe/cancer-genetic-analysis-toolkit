@@ -6,6 +6,7 @@ from typing import Optional
 import pandas as pd
 from Bio import SeqIO
 from Bio.SeqRecord import SeqRecord
+from scipy import stats
 
 eqRecordGenerator = Generator[SeqRecord, None, None]
 
@@ -65,3 +66,47 @@ def gene_expression(
     else:
         print(f"Gene '{gene}' not found in expression dataset.")
         return None
+
+
+def differential_expression(
+    mutation_df: pd.DataFrame, expression_df: pd.DataFrame, gene: str
+) -> Optional[dict[str, float]]:
+    """Analyzes mutation-driven differential gene expression."""
+    if gene not in expression_df.columns:
+        print(f"Gene '{gene}' not found in expression dataset.")
+        return None
+
+    mutated_samples = mutation_df[mutation_df["mutation"] == "mutated"]
+    non_mutated_samples = mutation_df[mutation_df["mutation"] == "non-mutated"]
+
+    if len(mutated_samples) < 2 or len(non_mutated_samples) < 2:
+        print(
+            "Insufficient samples in one or both groups for statistical test."
+        )
+        return None
+
+    mutated_expression = expression_df.loc[
+        mutated_samples.index, gene
+    ].dropna()
+    non_mutated_expression = expression_df.loc[
+        non_mutated_samples.index, gene
+    ].dropna()
+
+    if len(mutated_expression) < 2 or len(non_mutated_expression) < 2:
+        print("Not enough valid data after dropping NaNs")
+        return None
+
+    t_stat, p_value = stats.ttest_ind(
+        mutated_expression, non_mutated_expression
+    )
+
+    if (
+        pd.isna(t_stat)
+        or pd.isna(p_value)
+        or t_stat == float("inf")
+        or p_value == float("inf")
+    ):
+        print("Invalid t-test result (NaN or infinite values).")
+        return None
+
+    return {"t_statistic": t_stat, "p_value": p_value}
