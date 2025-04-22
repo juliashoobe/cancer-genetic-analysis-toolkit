@@ -10,19 +10,15 @@ from Bio.SeqRecord import SeqRecord
 eqRecordGenerator = Generator[SeqRecord, None, None]
 
 
-def parse_sequences(fasta_file: str) -> list[SeqRecord]:
-    """Returns a list of SeqRecord objects from a FASTA file."""
-    return list(SeqIO.parse(fasta_file, "fasta"))
-
-
 def parse_data(
     mutation_file: str, expression_file: str, fasta_file: str
 ) -> tuple[pd.DataFrame, pd.DataFrame, dict[str, str]]:
-    """Parses mutation, expression, and sequence data from files."""
+    """Parsing mutation, expression, and sequence data."""
     mutation_df = pd.read_csv(mutation_file)
     expression_df = pd.read_csv(expression_file)
 
-    records = parse_sequences(fasta_file)
+    # Parse sequences directly within the function
+    records = list(SeqIO.parse(fasta_file, "fasta"))
 
     sequences: dict[str, str] = {
         record.id: str(record.seq)
@@ -35,7 +31,7 @@ def parse_data(
 
 def mutation_detection(
     reference_seq: str, mutated_seq: str
-) -> list[dict[str, object]]:
+) -> list[dict[str, str]]:
     """Compares a reference DNA sequence with a mutated target DNA sequence.
 
     Identifies position where mutations occur, indicating differences in the
@@ -45,7 +41,7 @@ def mutation_detection(
     for i in range(len(reference_seq)):
         if reference_seq[i] != mutated_seq[i]:
             mutation = {
-                "position": i + 1,
+                "position": str(i + 1),  # Convert to string here
                 "reference_base": reference_seq[i],
                 "mutated_base": mutated_seq[i],
             }
