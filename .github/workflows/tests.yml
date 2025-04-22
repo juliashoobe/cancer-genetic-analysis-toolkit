@@ -21,15 +21,13 @@ jobs:
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
         if [ -f requirements-test.txt ]; then pip install -r requirements-test.txt; fi
 
-    - name: Run pytest
+    - name: Run tests with pytest
       continue-on-error: true
       run: |
+        # Run pytest on the `toolkit.py` file and any relevant files in the `data/` folder if necessary
         if [ -d tests/ ]; then
-          code=$(
-            coverage run --source=src/ -m pytest tests/ > test_report.txt
-            echo $?
-          )
-          echo $code > exit_code.txt
+          coverage run --source=toolkit.py -m pytest tests/ > test_report.txt
+          echo $? > exit_code.txt
         else
           echo 0 > exit_code.txt
         fi
