@@ -11,12 +11,12 @@ def mock_data() -> tuple[pd.DataFrame, pd.DataFrame]:
     """Creates mock mutation and gene expression data for testing."""
     mutation_data = {
         "sample_id": ["sample1", "sample2", "sample3", "sample4", "sample5"],
-        "mutation": [
-            "mutated",
-            "non-mutated",
-            "mutated",
-            "non-mutated",
-            "mutated",
+        "label": [
+            "cancer",
+            "non-cancer",
+            "cancer",
+            "non-cancer",
+            "cancer",
         ],
     }
     mutation_df = pd.DataFrame(mutation_data)

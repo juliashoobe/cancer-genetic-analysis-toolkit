@@ -77,29 +77,26 @@ def differential_expression(
         print(f"Gene '{gene}' not found in expression dataset.")
         return None
 
-    mutated_samples = mutation_df[mutation_df["mutation"] == "mutated"]
-    non_mutated_samples = mutation_df[mutation_df["mutation"] == "non-mutated"]
+    # Update to use 'label' for cancer vs non-cancer differentiation
+    cancer_samples = mutation_df[mutation_df["label"] == "cancer"]
+    non_cancer_samples = mutation_df[mutation_df["label"] == "non-cancer"]
 
-    if len(mutated_samples) < 2 or len(non_mutated_samples) < 2:
+    if len(cancer_samples) < 2 or len(non_cancer_samples) < 2:
         print(
             "Insufficient samples in one or both groups for statistical test."
         )
         return None
 
-    mutated_expression = expression_df.loc[
-        mutated_samples.index, gene
-    ].dropna()
-    non_mutated_expression = expression_df.loc[
-        non_mutated_samples.index, gene
+    cancer_expression = expression_df.loc[cancer_samples.index, gene].dropna()
+    non_cancer_expression = expression_df.loc[
+        non_cancer_samples.index, gene
     ].dropna()
 
-    if len(mutated_expression) < 2 or len(non_mutated_expression) < 2:
+    if len(cancer_expression) < 2 or len(non_cancer_expression) < 2:
         print("Not enough valid data after dropping NaNs")
         return None
 
-    t_stat, p_value = stats.ttest_ind(
-        mutated_expression, non_mutated_expression
-    )
+    t_stat, p_value = stats.ttest_ind(cancer_expression, non_cancer_expression)
 
     if (
         pd.isna(t_stat)
