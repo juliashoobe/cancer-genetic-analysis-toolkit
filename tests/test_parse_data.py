@@ -1,7 +1,7 @@
 """Tests parse_data() function."""
 
 from collections.abc import Iterator
-from typing import Any
+from typing import Any, Optional
 
 import pandas as pd
 import pytest
@@ -62,3 +62,34 @@ def test_parse_data(
         expected_result = (mutation_df, expression_df, sequences)
 
         assert result == expected_result
+
+
+def test_parse_data_with_only_fasta() -> None:
+    """Test parse_data when only a FASTA file is provided."""
+    with pytest.MonkeyPatch.context() as mp:
+        mutation_file: Optional[str] = None
+        expression_file: Optional[str] = None
+        mp.setattr(
+            pd,
+            "read_csv",
+            lambda file_path: (_ for _ in ()).throw(
+                Exception("Should not be called")
+            ),
+        )
+
+        def mock_parse(file_path: Any, format: Any) -> Iterator[SeqRecord]:
+            return iter(
+                [
+                    SeqRecord(Seq("ATCGATAG"), id="seq1"),
+                    SeqRecord(Seq("ATCGATCG"), id="seq2"),
+                ]
+            )
+
+        mp.setattr("Bio.SeqIO.parse", mock_parse)
+
+        result = parse_data(
+            mutation_file, expression_file, "mock_sequences.fasta"
+        )
+        expected_sequences = {"seq1": "ATCGATAG", "seq2": "ATCGATCG"}
+
+        assert result == (None, None, expected_sequences)
