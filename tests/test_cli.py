@@ -1,113 +1,114 @@
 """Tests CLI."""
 
-import subprocess
+import contextlib
+import sys
+from io import StringIO
 from pathlib import Path
 from typing import Any
 
-import pandas as pd
 import pytest
 
-
-def run_cli(command: list[str]) -> subprocess.CompletedProcess[str]:
-    """Runs the CLI command and captures the output."""
-    return subprocess.run(
-        command,
-        text=True,
-        capture_output=True,
-    )
+from cli import main
 
 
 @pytest.fixture
-def mock_files(tmp_path: Path) -> tuple[Any, Any, dict[str, str]]:
-    """Fixture to create mock data for testing."""
-    mutation_data = {
-        "Gene": ["BRCA1", "TP53"],
-        "Mutation": ["Del", "Substitution"],
-    }
-    expression_data = {"BRCA1": [1.2, 3.4], "TP53": [2.1, 4.5]}
+def mock_files(tmp_path: Path) -> tuple[str, str, str]:
+    """Create temporary CSV files."""
+    mutation_path = tmp_path / "mutation.csv"
+    expression_path = tmp_path / "expression.csv"
+    fasta_path = tmp_path / "sequences.fasta"
 
-    mutation_df = pd.DataFrame(mutation_data)
-    expression_df = pd.DataFrame(expression_data)
+    mutation_data = """sample_id,label
+sample1,cancer
+sample2,non-cancer
+sample3,cancer
+sample4,non-cancer
+sample5,cancer"""
+    expression_data = """TP53,BRCA1,MYC
+2.5,5.1,1.2
+3.0,5.3,1.4
+2.8,5.2,1.3
+4.5,4.0,1.1
+5.0,4.8,1.0"""
+    fasta_data = """>ref
+ATCGATCGATCG
+>mut
+ATCGATTGATCG"""
 
-    sequences = {"seq1": "ATCGATAG", "seq2": "ATCGATCG"}
+    mutation_path.write_text(mutation_data)
+    expression_path.write_text(expression_data)
+    fasta_path.write_text(fasta_data)
 
-    mutation_file = tmp_path / "mock_mutation.csv"
-    expression_file = tmp_path / "mock_expression.csv"
-    fasta_file = tmp_path / "mock_sequences.fasta"
-
-    mutation_df.to_csv(mutation_file, index=False)
-    expression_df.to_csv(expression_file, index=False)
-
-    with open(fasta_file, "w") as f:
-        for seq_id, seq in sequences.items():
-            f.write(f">{seq_id}\n{seq}\n")
-
-    return mutation_df, expression_df, sequences
+    return str(mutation_path), str(expression_path), str(fasta_path)
 
 
-def test_cli_mutation_detection(
-    mock_files: tuple[pd.DataFrame, pd.DataFrame, dict[str, str]],
+def run_cli(monkeypatch: Any, cli_args: Any) -> str:
+    """Tests the CLI."""
+    monkeypatch.setattr(sys, "argv", cli_args)
+    captured_output = StringIO()
+    monkeypatch.setattr(sys, "stdout", captured_output)
+    monkeypatch.setattr(sys, "stderr", captured_output)
+    with contextlib.suppress(SystemExit):
+        main()
+    return captured_output.getvalue()
+
+
+def test_mutation_command(
+    monkeypatch: pytest.MonkeyPatch, mock_files: tuple[str, str, str]
 ) -> None:
-    """Test the mutation detection CLI command."""
-    fasta_file = "mock_sequences.fasta"
+    """Tests the CLI mutation_detection command."""
+    mutation_file, _, fasta_file = mock_files
+    args = [
+        "cli.py",
+        "mutation",
+        "--ref-id",
+        "ref",
+        "--target-id",
+        "mut",
+        "--fasta",
+        fasta_file,
+        "--mutation-file",
+        mutation_file,
+    ]
+    output = run_cli(monkeypatch, args)
+    assert "position" in output
+    assert "reference_base" in output
+    assert "mutated_base" in output
 
-    result = run_cli(
-        [
-            "python",
-            "toolkit.py",
-            "mutation",
-            "--ref-id",
-            "seq1",
-            "--target-id",
-            "seq2",
-            "--fasta",
-            fasta_file,
-        ]
-    )
 
-    assert result.returncode == 0
-
-
-def test_cli_gene_expression(
-    mock_files: tuple[pd.DataFrame, pd.DataFrame, dict[str, str]],
+def test_expression_command(
+    monkeypatch: pytest.MonkeyPatch, mock_files: tuple[str, str, str]
 ) -> None:
-    """Test the gene expression CLI command."""
-    expression_file = "mock_expression.csv"
-
-    result = run_cli(
-        [
-            "python",
-            "toolkit.py",
-            "expression",
-            "--gene",
-            "BRCA1",
-            "--expression-file",
-            str(expression_file),
-        ]
-    )
-    print(result.stderr)
-
-    assert "BRCA1" in result.stdout
+    """Tests the CLI gene_expression command."""
+    _, expression_file, _ = mock_files
+    args = [
+        "cli.py",
+        "expression",
+        "--gene",
+        "TP53",
+        "--expression-file",
+        expression_file,
+    ]
+    output = run_cli(monkeypatch, args)
+    assert "2.5" in output
+    assert "5.0" in output
 
 
-def test_cli_differential_expression(
-    mock_files: tuple[pd.DataFrame, pd.DataFrame, dict[str, str]],
+def test_differential_expression_command(
+    monkeypatch: pytest.MonkeyPatch, mock_files: tuple[str, str, str]
 ) -> None:
-    """Test the differential expression CLI command."""
-    mutation_file, expression_file = "mock_mutation.csv", "mock_expression.csv"
-
-    result = run_cli(
-        [
-            "python",
-            "toolkit.py",
-            "differential",
-            "--gene",
-            "BRCA1",
-            "--mutation-file",
-            str(mutation_file),
-            "--expression-file",
-            str(expression_file),
-        ]
-    )
-
-    assert "t-statistic" in result.stdout
+    """Tests the CLI differential_expression command."""
+    mutation_file, expression_file, _ = mock_files
+    args = [
+        "cli.py",
+        "differential",
+        "--gene",
+        "TP53",
+        "--mutation-file",
+        mutation_file,
+        "--expression-file",
+        expression_file,
+    ]
+    output = run_cli(monkeypatch, args)
+    assert "t-statistic" in output
+    assert "p-value" in output

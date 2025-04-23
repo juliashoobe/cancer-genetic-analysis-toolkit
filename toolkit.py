@@ -51,6 +51,7 @@ def mutation_detection(
 
     if not mutations:
         mutations.append({"message": "No mutations detected."})
+        print("No mutations detected.")
 
     return mutations
 
