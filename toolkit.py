@@ -12,20 +12,18 @@ eqRecordGenerator = Generator[SeqRecord, None, None]
 
 
 def parse_data(
-    mutation_file: str, expression_file: str, fasta_file: str
-) -> tuple[pd.DataFrame, pd.DataFrame, dict[str, str]]:
+    mutation_file: Optional[str] = None,
+    expression_file: Optional[str] = None,
+    fasta_file: Optional[str] = None,
+) -> tuple[Optional[pd.DataFrame], Optional[pd.DataFrame], dict[str, str]]:
     """Parsing mutation, expression, and sequence data."""
-    mutation_df = pd.read_csv(mutation_file)
-    expression_df = pd.read_csv(expression_file)
+    mutation_df = pd.read_csv(mutation_file) if mutation_file else None
+    expression_df = pd.read_csv(expression_file) if expression_file else None
 
-    # Parse sequences directly within the function
-    records = list(SeqIO.parse(fasta_file, "fasta"))
-
-    sequences: dict[str, str] = {
-        record.id: str(record.seq)
-        for record in records
-        if record.id is not None
-    }
+    sequences: dict[str, str] = {}
+    if fasta_file:
+        for record in SeqIO.parse(fasta_file, "fasta"):
+            sequences[record.id] = str(record.seq)
 
     return mutation_df, expression_df, sequences
 
@@ -38,6 +36,9 @@ def mutation_detection(
     Identifies position where mutations occur, indicating differences in the
     base pairs.
     """
+    if len(reference_seq) != len(mutated_seq):
+        raise ValueError("Sequences must be the same length.")
+
     mutations = []
     for i in range(len(reference_seq)):
         if reference_seq[i] != mutated_seq[i]:
