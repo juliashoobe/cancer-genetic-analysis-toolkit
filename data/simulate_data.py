@@ -124,6 +124,10 @@ for gene in GENES:
         expression = base_mean + shift + noise
         gene_expression.append(expression)
 
+    # Add the gene expression list to the dictionary
+    expression_data[gene] = gene_expression
+
+# Convert the expression data into a DataFrame
 expression_df = pd.DataFrame(expression_data)
 expression_df.to_csv("data/expression_data.csv", index=False)
 
@@ -139,9 +143,7 @@ records = []
 
 # Reference sequences (unmutated)
 for gene, seq in reference_sequences.items():
-    records.append(
-        SeqRecord(Seq(seq), id=f"{gene}_REF", description="Reference")
-    )
+    records.append(SeqRecord(Seq(seq), id=f"{gene}_REF", description=""))
 
 # Mutated sequences with only point mutations
 for gene, ref_seq in reference_sequences.items():
@@ -153,15 +155,14 @@ for gene, ref_seq in reference_sequences.items():
 
         for pos, new_base in selected_mutations:
             if pos < len(seq_list):
-                seq_list[pos] = new_base  # Apply the mutation (point mutation)
+                seq_list[pos] = new_base
 
         mutated_seq = "".join(seq_list)
         records.append(
             SeqRecord(
                 Seq(mutated_seq),
                 id=f"{gene}_VAR{i + 1}",
-                description=f"Mutated with {num_mutations} "
-                "known point mutations",
+                description="",
             )
         )
 
